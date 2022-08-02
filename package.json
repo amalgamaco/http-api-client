@@ -1,0 +1,96 @@
+{
+	"name": "@amalgama/http-api-client",
+	"version": "1.0.0",
+	"description": "An abstraction for establishing connections with HTTP APIs, supporting OAuth2 authentication with refresh tokens and other minor features.",
+	"main": "dist/index.js",
+	"types": "dist/index.d.ts",
+	"files": [
+		"dist/**/*"
+	],
+	"scripts": {
+		"build": "tsc",
+		"lint": "eslint src/",
+		"test": "JEST_JUNIT_OUTPUT_DIR=reports jest",
+		"release": "release-it"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git@git.amalgama.co:amalgama/packages/npm/http-api-client.git"
+	},
+	"keywords": [
+		"api",
+		"client",
+		"http",
+		"oauth",
+		"refresh token"
+	],
+	"author": "Damián Huaier",
+	"license": "ISC",
+	"publishConfig": {
+		"@amalgama:registry": "https://git.amalgama.co/api/v4/projects/982/packages/npm/"
+	},
+	"dependencies": {
+		"axios": "^0.27.2"
+	},
+	"devDependencies": {
+		"@babel/cli": "^7.18.9",
+		"@babel/core": "^7.18.9",
+		"@babel/eslint-parser": "^7.18.9",
+		"@babel/preset-env": "^7.18.9",
+		"@types/jest": "^28.1.6",
+		"@typescript-eslint/eslint-plugin": "^5.30.7",
+		"@typescript-eslint/parser": "^5.30.7",
+		"eslint": "^7.32.0 || ^8.2.0",
+		"eslint-config-airbnb-base": "^15.0.0",
+		"eslint-import-resolver-typescript": "^3.2.7",
+		"eslint-plugin-import": "^2.25.2",
+		"jest": "^28.1.3",
+		"jest-junit": "^14.0.0",
+		"mobx": "^6.6.1",
+		"release-it": "^15.1.2",
+		"ts-jest": "^28.0.7",
+		"typescript": "^4.7.4"
+	},
+	"jest": {
+		"collectCoverage": true,
+		"coverageDirectory": "<rootDir>/reports/coverage",
+		"coverageReporters": [
+			"json",
+			"lcov",
+			"text",
+			"text-summary",
+			"cobertura"
+		],
+		"reporters": [
+			"default",
+			"jest-junit"
+		],
+		"testMatch": [
+			"<rootDir>/tests/**/?(*.)(spec|test).ts"
+		],
+		"transform": {
+			"^.+\\.jsx?$": "ts-jest"
+		},
+		"preset": "ts-jest"
+	},
+	"release-it": {
+		"git": {
+			"tagName": "v${version}",
+			"requireCleanWorkingDir": false,
+			"requireUpstream": true,
+			"commitMessage": "Release v${version}",
+			"changelog": "npx auto-changelog --stdout --commit-limit false --unreleased --issue-url https://git.amalgama.co/amalgama/packages/npm/http-api-client/-/issues/{id} --merge-url https://git.amalgama.co/amalgama/packages/npm/http-api-client/-/merge_requests/{id} --commit-url https://git.amalgama.co/amalgama/packages/npm/http-api-client/-/commit/{id}"
+		},
+		"hooks": {
+			"after:bump": "npx auto-changelog -p"
+		},
+		"gitlab": {
+			"release": true,
+			"publish": true,
+			"releaseName": "Release v${version}"
+		},
+		"npm": {
+			"skipChecks": true
+		}
+	}
+}
