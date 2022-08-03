@@ -30,7 +30,9 @@
 		"@amalgama:registry": "https://git.amalgama.co/api/v4/projects/982/packages/npm/"
 	},
 	"dependencies": {
-		"axios": "^0.27.2"
+		"@types/qs": "^6.9.7",
+		"axios": "^0.27.2",
+		"qs": "^6.11.0"
 	},
 	"devDependencies": {
 		"@babel/cli": "^7.18.9",

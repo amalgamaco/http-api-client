@@ -42,25 +42,11 @@ describe( 'AuthApi', () => {
 			expires_in: 300,
 			refresh_token: 'abc'
 		};
-		const errorStatus = 400;
-		const errorResponse = {
-			error: 'unauthorized_client',
-			error_description: 'A description'
-		};
 
 		const mockAccessTokenResponse = ( responseOverrides = {} ) => {
 			axiosClient.post.mockResolvedValue( {
 				status: 200,
 				data: { ...response, ...responseOverrides }
-			} );
-		};
-
-		const mockAccessTokenErrorResponse = ( status = errorStatus, responseOverrides = {} ) => {
-			axiosClient.post.mockRejectedValue( {
-				response: {
-					status,
-					data: { ...errorResponse, ...responseOverrides }
-				}
 			} );
 		};
 
@@ -115,6 +101,21 @@ describe( 'AuthApi', () => {
 		} );
 
 		describe( 'when the request returns a failed access token response', () => {
+			const errorStatus = 400;
+			const errorResponse = {
+				error: 'unauthorized_client',
+				error_description: 'A description'
+			};
+
+			const mockAccessTokenErrorResponse = ( status = errorStatus, responseOverrides = {} ) => {
+				axiosClient.post.mockRejectedValue( {
+					response: {
+						status,
+						data: { ...errorResponse, ...responseOverrides }
+					}
+				} );
+			};
+
 			describe( 'when the failed response has HTTP status 400 or 401', () => {
 				const expectApiToThrowInvalidTokenRequestError = async (
 					{ errorClass, errorCode = errorResponse.error }
