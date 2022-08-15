@@ -1,5 +1,6 @@
 import NetworkError from './NetworkError';
 
+export { default as FailedResponseError } from './FailedResponseError';
 export { default as InvalidCredentialsError } from './InvalidCredentialsError';
 export { default as InvalidTokenRequestError } from './InvalidTokenRequestError';
 
@@ -16,4 +17,9 @@ export const unexpectedTokenResponseError = () => new Error(
 export const unexpectedFailedResponseMessage = ( status: number, data: unknown ) => new Error(
 	'Received unexpected failed response for access token request. '
 	+ `Status: ${status}, data: ${data}`
+);
+
+export const missingAuthApiError = () => new Error(
+	'Authentication parameters through the parameter \'authParams\' must be supplied '
+	+ 'in the client constructor in order for the \'authenticate\' method to work.'
 );
