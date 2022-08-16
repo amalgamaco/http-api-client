@@ -37,7 +37,7 @@ export default class Api {
 		} );
 	}
 
-	get( path: string, config?: RequestConfig ) {
+	get( path: string, config?: RequestConfig ): Promise<ApiResponse> {
 		return this.request( { method: 'get', path, ...config } );
 	}
 
