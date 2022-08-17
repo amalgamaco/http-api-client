@@ -25,12 +25,20 @@ jest.mock( 'axios', () => ( {
 
 describe( 'AuthApi', () => {
 	const baseUrl = 'https://auth.server';
-	const tokenEndpoint = '/oauth/token';
+	const createTokenEndpoint = '/oauth/token';
+	const revokeTokenEndpoint = '/oauth/revoke';
 	const clientId = 'client id';
 	const clientSecret = 'client secret';
 
+	const buildAccessToken = () => ( {
+		token: 'a_token',
+		type: 'bearer',
+		expiresIn: 400,
+		refreshToken: 'a_refresh_token'
+	} );
+
 	const createAuthApi = () => new AuthApi( {
-		baseUrl, tokenEndpoint, clientId, clientSecret
+		baseUrl, createTokenEndpoint, revokeTokenEndpoint, clientId, clientSecret
 	} );
 
 	const itRequestsAnAccessToken = ( {
@@ -57,12 +65,13 @@ describe( 'AuthApi', () => {
 		};
 
 		beforeEach( () => mockAccessTokenResponse() );
+		afterEach( () => jest.clearAllMocks() );
 
 		it( actionDescription, () => {
 			createApiAndRequestToken();
 
 			expect( axiosClient.post ).toHaveBeenCalledWith(
-				tokenEndpoint,
+				createTokenEndpoint,
 				{ grant_type: withGrantType, ...withCredentials }
 			);
 		} );
@@ -182,18 +191,13 @@ describe( 'AuthApi', () => {
 			withCredentials: credentials,
 			errorClassForInvalidGrant: InvalidCredentialsError,
 			actionDescription: (
-				'requests the token endpoint with the provided credentials following the OAuth2 spec'
+				'requests the create token endpoint with the provided credentials following the OAuth2 spec'
 			)
 		} );
 	} );
 
 	describe( '@refreshAccessToken', () => {
-		const accessToken = {
-			token: 'a_token',
-			type: 'bearer',
-			expiresIn: 400,
-			refreshToken: 'a_refresh_token'
-		};
+		const accessToken = buildAccessToken();
 
 		itRequestsAnAccessToken( {
 			action: authApi => authApi.refreshAccessToken( { accessToken } ),
@@ -201,8 +205,100 @@ describe( 'AuthApi', () => {
 			withCredentials: { refresh_token: accessToken.refreshToken },
 			errorClassForInvalidGrant: InvalidTokenRequestError,
 			actionDescription: (
-				'requests the token endpoint with the refresh token associated to the given access token'
+				'requests the create token endpoint with the refresh token associated to the given access token'
 			)
+		} );
+	} );
+
+	describe( '@revokeAccessToken', () => {
+		const accessToken = buildAccessToken();
+
+		beforeEach( () => {
+			axiosClient.post.mockResolvedValue( {
+				status: 200,
+				data: null
+			} );
+		} );
+
+		const createApiAndRevokeToken = () => {
+			const api = createAuthApi();
+
+			return api.revokeAccessToken( accessToken );
+		};
+
+		it( 'requests the revoke token endpoint passing the given access token', () => {
+			createApiAndRevokeToken();
+
+			expect( axiosClient.post ).toHaveBeenCalledWith(
+				revokeTokenEndpoint,
+				undefined,
+				{ params: { token: accessToken.token } }
+			);
+		} );
+
+		describe( 'when the request is successful', () => {
+			it( 'resolves the promise', async () => {
+				await expect( createApiAndRevokeToken() ).resolves.not.toThrow();
+			} );
+		} );
+
+		describe( 'when the request returns a failed response', () => {
+			const errorStatus = 400;
+			const errorResponse = {
+				error: 'unauthorized_client',
+				error_description: 'A description'
+			};
+
+			const mockAccessTokenErrorResponse = ( status = errorStatus, responseOverrides = {} ) => {
+				axiosClient.post.mockRejectedValue( {
+					response: {
+						status,
+						data: { ...errorResponse, ...responseOverrides }
+					}
+				} );
+			};
+
+			describe( 'when the failed response has HTTP status 400 or 401', () => {
+				const expectApiToThrowInvalidTokenRequestError = async (
+					{ errorClass, errorCode = errorResponse.error }
+					: { errorClass: unknown, errorCode?: string }
+				) => {
+					expect.assertions( 4 );
+
+					try {
+						await createApiAndRevokeToken();
+					} catch ( thrownError ) {
+						expect( thrownError ).toBeInstanceOf( errorClass );
+
+						const error = thrownError as InvalidTokenRequestError;
+
+						expect( error.code ).toEqual( errorCode );
+						expect( error.httpStatus ).toEqual( errorStatus );
+						expect( error.description ).toEqual( errorResponse.error_description );
+					}
+				};
+
+				it( 'throws an InvalidTokenRequestError with the returned code and description', async () => {
+					mockAccessTokenErrorResponse();
+
+					await expectApiToThrowInvalidTokenRequestError( {
+						errorClass: InvalidTokenRequestError
+					} );
+				} );
+			} );
+
+			describe( 'when the failed response has another HTTP status', () => {
+				it( 'throws an Error containing the status and body', async () => {
+					expect.assertions( 1 );
+					mockAccessTokenErrorResponse( 500 );
+
+					try {
+						await createApiAndRevokeToken();
+					} catch ( error ) {
+						expect( error ).toBeInstanceOf( Error );
+					}
+				} );
+			} );
 		} );
 	} );
 } );

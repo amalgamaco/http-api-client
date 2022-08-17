@@ -1,6 +1,7 @@
 export interface AuthApiParams {
 	baseUrl: string,
-	tokenEndpoint: string,
+	createTokenEndpoint: string,
+	revokeTokenEndpoint: string,
 	clientId: string,
 	clientSecret: string
 }
