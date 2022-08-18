@@ -21,5 +21,6 @@ export const unexpectedFailedResponseMessage = ( status: number, data: unknown )
 
 export const missingAuthApiError = () => new Error(
 	'Authentication parameters through the parameter \'authParams\' must be supplied '
-	+ 'in the client constructor in order for the \'authenticate\' method to work.'
+	+ 'in the client constructor in order for the \'authenticate\' and \'revokeAccess\' '
+	+ 'methods to work.'
 );

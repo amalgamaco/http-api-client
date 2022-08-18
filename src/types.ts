@@ -32,11 +32,12 @@ export interface AccessTokenRequestResponse {
 
 export interface IAuthApi {
 	requestAccessToken: ( authParams: AccessTokenParams ) => Promise<AccessToken>,
-	refreshAccessToken: ( refreshParams: AccessTokenRefreshParams ) => Promise<AccessToken>
+	refreshAccessToken: ( refreshParams: AccessTokenRefreshParams ) => Promise<AccessToken>,
+	revokeAccessToken: ( accessToken: AccessToken ) => Promise<void>
 }
 
 export type AccessTokenGetter = () => AccessToken | null | undefined;
-export type AccessTokenUpdateCallback = ( accessToken: AccessToken ) => void;
+export type AccessTokenUpdateCallback = ( accessToken: AccessToken | null ) => void;
 
 export interface ApiParams {
 	baseUrl: string,

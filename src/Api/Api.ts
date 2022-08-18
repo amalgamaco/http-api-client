@@ -2,7 +2,6 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { stringify } from 'qs';
 import {
-	AccessToken,
 	AccessTokenParams,
 	AccessTokenGetter,
 	AccessTokenUpdateCallback,
@@ -71,6 +70,14 @@ export default class Api {
 		);
 	}
 
+	revokeAccess(): Promise<void> {
+		if ( !this.authApi ) return Promise.reject( missingAuthApiError() );
+		if ( !this.accessToken ) return Promise.resolve();
+
+		return this.authApi.revokeAccessToken( this.accessToken )
+			.then( () => this.onAccessTokenUpdated( null ) );
+	}
+
 	request( config: RequestConfig ): Promise<ApiResponse> {
 		return this.client.request( this.axiosRequestConfigFor( config ) )
 			.then( response => response.data as ApiResponse )
@@ -88,11 +95,9 @@ export default class Api {
 	}
 
 	private authHeaders(): Record<string, string> {
-		const accessToken = this.accessTokenGetter();
+		if ( !this.accessToken ) return {};
 
-		if ( !accessToken ) return {};
-
-		return { Authorization: `Bearer ${accessToken.token}` };
+		return { Authorization: `Bearer ${this.accessToken.token}` };
 	}
 
 	private handleRequestError( error: any, requestConfig: RequestConfig ): Promise<ApiResponse> {
@@ -117,14 +122,19 @@ export default class Api {
 	}
 
 	private canRefreshToken(): boolean {
-		return !!this.authApi && !!this.accessTokenGetter()?.refreshToken;
+		return !!this.authApi && !!this.accessToken?.refreshToken;
 	}
 
 	private refreshTokenAndRetryRequest( requestConfig: RequestConfig ): Promise<ApiResponse> {
 		return ( this.authApi as IAuthApi )
-			.refreshAccessToken( { accessToken: ( this.accessTokenGetter() as AccessToken ) } )
+			// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+			.refreshAccessToken( { accessToken: this.accessToken! } )
 			.then( accessToken => this.onAccessTokenUpdated( accessToken ) )
 			// Refresh tokens are not used while retrying to avoid potential infinite loops
 			.then( () => this.request( { ...requestConfig, noRefreshToken: true } ) );
+	}
+
+	private get accessToken(): ReturnType<AccessTokenGetter> {
+		return this.accessTokenGetter();
 	}
 }
