@@ -1,3 +1,4 @@
+import axios from 'axios';
 import Api from '../../src/Api/Api';
 import { FailedResponseError, InvalidCredentialsError, InvalidTokenRequestError } from '../../src/errors';
 import NetworkError from '../../src/errors/NetworkError';
@@ -16,7 +17,7 @@ jest.mock( 'axios', () => ( {
 	...jest.requireActual( 'axios' ),
 	__esModule: true,
 	default: {
-		create: () => axiosClientMock,
+		create: jest.fn( () => axiosClientMock ),
 		isAxiosError: () => true
 	}
 } ) );
@@ -53,6 +54,17 @@ describe( 'Api', () => {
 	} );
 
 	afterEach( () => jest.clearAllMocks() );
+
+	describe( 'constructor', () => {
+		it( 'creates an Axios client with the given base URL and a params serializer', () => {
+			createApi();
+
+			expect( axios.create ).toHaveBeenCalledWith( {
+				baseURL: baseUrl,
+				paramsSerializer: expect.any( Function )
+			} );
+		} );
+	} );
 
 	describe( '@authenticate', () => {
 		const credentials = { username: 'test', password: 'test' };
