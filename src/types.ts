@@ -1,5 +1,8 @@
+export type GrantType = string;
+
 export interface AuthApiParams {
 	baseUrl: string,
+	defaultGrantType?: GrantType,
 	createTokenEndpoint: string,
 	revokeTokenEndpoint: string,
 	clientId: string,
@@ -16,6 +19,7 @@ export interface AccessToken {
 }
 
 export interface AccessTokenParams {
+	grantType?: GrantType,
 	credentials: Credentials
 }
 
