@@ -1,5 +1,6 @@
 /* eslint-disable class-methods-use-this, @typescript-eslint/no-explicit-any */
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
+import { HTTP_BAD_REQUEST, HTTP_UNAUTHORIZED } from '../constants';
 import {
 	InvalidCredentialsError,
 	InvalidTokenRequestError,
@@ -107,7 +108,7 @@ export default class AuthApi {
 	) {
 		const { data, status } = response;
 
-		if ( status === 400 || status === 401 ) {
+		if ( status === HTTP_BAD_REQUEST || status === HTTP_UNAUTHORIZED ) {
 			const { error: code, error_description: description } = data;
 
 			// A specific InvalidCredentialsError is thrown when user credentials are
