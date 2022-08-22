@@ -1,5 +1,7 @@
 /* eslint-disable class-methods-use-this, @typescript-eslint/no-explicit-any */
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+import axios, {
+	AxiosInstance, AxiosRequestConfig, AxiosRequestHeaders, AxiosResponse
+} from 'axios';
 import { stringify } from 'qs';
 import {
 	AccessTokenParams,
@@ -7,13 +9,14 @@ import {
 	AccessTokenUpdateCallback,
 	ApiParams,
 	ApiResponse,
-	JSONValue,
+	IAuthApi,
 	QueryParams,
 	RequestConfig,
-	IAuthApi
+	RequestData
 } from '../types';
 import { FailedResponseError, missingAuthApiError, networkError } from '../errors';
 import { HTTP_UNAUTHORIZED } from '../constants';
+import { serializeRequestDataForContentType } from './utils';
 
 export default class Api {
 	private client: AxiosInstance;
@@ -37,29 +40,29 @@ export default class Api {
 		} );
 	}
 
-	get( path: string, config?: RequestConfig ): Promise<ApiResponse> {
+	get( path: string, config?: Partial<RequestConfig> ): Promise<ApiResponse> {
 		return this.request( { method: 'get', path, ...config } );
 	}
 
-	post( path: string, data?: JSONValue, config?: RequestConfig ): Promise<ApiResponse> {
+	post( path: string, data?: RequestData, config?: Partial<RequestConfig> ): Promise<ApiResponse> {
 		return this.request( {
 			method: 'post', path, data, ...config
 		} );
 	}
 
-	put( path: string, data?: JSONValue, config?: RequestConfig ): Promise<ApiResponse> {
+	put( path: string, data?: RequestData, config?: Partial<RequestConfig> ): Promise<ApiResponse> {
 		return this.request( {
 			method: 'put', path, data, ...config
 		} );
 	}
 
-	patch( path: string, data?: JSONValue, config?: RequestConfig ): Promise<ApiResponse> {
+	patch( path: string, data?: RequestData, config?: Partial<RequestConfig> ): Promise<ApiResponse> {
 		return this.request( {
 			method: 'patch', path, data, ...config
 		} );
 	}
 
-	delete( path: string, config?: RequestConfig ): Promise<ApiResponse> {
+	delete( path: string, config?: Partial<RequestConfig> ): Promise<ApiResponse> {
 		return this.request( { method: 'delete', path, ...config } );
 	}
 
@@ -90,12 +93,19 @@ export default class Api {
 			method: config.method,
 			url: config.path,
 			params: config.params,
-			headers: this.authHeaders(),
-			data: config.data
+			headers: this.requestHeadersFor( config ),
+			data: config.data,
+			transformRequest: serializeRequestDataForContentType
 		} );
 	}
 
-	private authHeaders(): Record<string, string> {
+	private requestHeadersFor( config: RequestConfig ): AxiosRequestHeaders {
+		const contentType = config.sendAsFormData ? 'multipart/form-data' : 'application/json';
+
+		return { 'Content-Type': contentType, ...this.authHeaders() };
+	}
+
+	private authHeaders(): AxiosRequestHeaders {
 		if ( !this.accessToken ) return {};
 
 		return { Authorization: `Bearer ${this.accessToken.token}` };

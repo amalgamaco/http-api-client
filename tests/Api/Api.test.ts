@@ -217,11 +217,11 @@ describe( 'Api', () => {
 			} );
 		};
 
-		const createApiAndMakeRequest = ( apiParams = {} ) => {
+		const createApiAndMakeRequest = ( apiParams = {}, requestConfig = {} ) => {
 			const api = createApi( apiParams );
 
 			return api.request( {
-				method: 'post', path, params, data
+				method: 'post', path, params, data, ...requestConfig
 			} );
 		};
 
@@ -253,8 +253,9 @@ describe( 'Api', () => {
 				method: 'post',
 				url: path,
 				params,
-				headers: {},
-				data
+				headers: { 'Content-Type': 'application/json' },
+				data,
+				transformRequest: expect.any( Function )
 			} );
 		} );
 
@@ -265,7 +266,24 @@ describe( 'Api', () => {
 
 				expect( axiosClientMock.request ).toHaveBeenCalledWith(
 					expect.objectContaining( {
-						headers: { Authorization: `Bearer ${accessToken.token}` }
+						headers: expect.objectContaining( {
+							Authorization: `Bearer ${accessToken.token}`
+						} )
+					} )
+				);
+			} );
+		} );
+
+		describe( 'when the config\'s sendAsFormData option is true', () => {
+			it( 'sends the Content-Type header with \'multipart/form-data\'', () => {
+				mockRequestSuccessfulResponse();
+				createApiAndMakeRequest( {}, { sendAsFormData: true } );
+
+				expect( axiosClientMock.request ).toHaveBeenCalledWith(
+					expect.objectContaining( {
+						headers: expect.objectContaining( {
+							'Content-Type': 'multipart/form-data'
+						} )
 					} )
 				);
 			} );
