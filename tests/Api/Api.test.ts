@@ -1,10 +1,16 @@
 import Api from '../../src/Api/Api';
-import { FailedResponseError, InvalidCredentialsError } from '../../src/errors';
+import { FailedResponseError, InvalidCredentialsError, InvalidTokenRequestError } from '../../src/errors';
 import NetworkError from '../../src/errors/NetworkError';
 
 const axiosClientMock = {
 	request: jest.fn()
 };
+
+const noAuthApiErrorMessage = (
+	'Authentication parameters through the parameter \'authParams\' must be supplied '
+	+ 'in the client constructor in order for the \'authenticate\' and \'revokeAccess\' '
+	+ 'methods to work.'
+);
 
 jest.mock( 'axios', () => ( {
 	...jest.requireActual( 'axios' ),
@@ -32,8 +38,21 @@ describe( 'Api', () => {
 
 	const authApi = {
 		requestAccessToken: jest.fn( () => Promise.resolve( accessToken ) ),
-		refreshAccessToken: jest.fn( () => Promise.resolve( refreshedAccessToken ) )
+		refreshAccessToken: jest.fn( () => Promise.resolve( refreshedAccessToken ) ),
+		revokeAccessToken: jest.fn( () => Promise.resolve( undefined ) )
 	};
+
+	const onAccessTokenUpdated = jest.fn();
+
+	const createApi = ( apiParams: object = {} ) => new Api( {
+		baseUrl,
+		authApi,
+		accessTokenGetter: () => accessToken,
+		onAccessTokenUpdated,
+		...apiParams
+	} );
+
+	afterEach( () => jest.clearAllMocks() );
 
 	describe( '@authenticate', () => {
 		const credentials = { username: 'test', password: 'test' };
@@ -41,22 +60,19 @@ describe( 'Api', () => {
 		describe( 'when the API was created without an OAuth2 auth API', () => {
 			it( 'throws an error', async () => {
 				expect.assertions( 1 );
-				const api = new Api( { baseUrl } );
+				const api = createApi( { authApi: undefined } );
 
 				try {
 					await api.authenticate( { credentials } );
 				} catch ( error ) {
-					expect( ( error as Error ).message ).toEqual(
-						'Authentication parameters through the parameter \'authParams\' must be supplied '
-						+ 'in the client constructor in order for the \'authenticate\' method to work.'
-					);
+					expect( ( error as Error ).message ).toEqual( noAuthApiErrorMessage );
 				}
 			} );
 		} );
 
 		describe( 'when the API was created with an OAuth2 auth API', () => {
 			it( 'requests an access token to the auth API passing the provided credentials', () => {
-				const api = new Api( { baseUrl, authApi } );
+				const api = createApi();
 
 				api.authenticate( { credentials } );
 
@@ -65,8 +81,7 @@ describe( 'Api', () => {
 
 			describe( 'when the auth API successfully returns an access token', () => {
 				it( 'calls the onAccessTokenUpdated callback with the returned access token', async () => {
-					const onAccessTokenUpdated = jest.fn();
-					const api = new Api( { baseUrl, authApi, onAccessTokenUpdated } );
+					const api = createApi();
 
 					await api.authenticate( { credentials } );
 
@@ -83,7 +98,7 @@ describe( 'Api', () => {
 						description: 'Invalid credentials'
 					} );
 					authApi.requestAccessToken.mockRejectedValueOnce( error );
-					const api = new Api( { baseUrl, authApi } );
+					const api = createApi();
 
 					try {
 						await api.authenticate( { credentials } );
@@ -95,8 +110,81 @@ describe( 'Api', () => {
 		} );
 	} );
 
+	describe( '@revokeAccess', () => {
+		describe( 'when the API was created without an OAuth2 auth API', () => {
+			it( 'throws an error', async () => {
+				expect.assertions( 1 );
+				const api = createApi( { authApi: undefined } );
+
+				try {
+					await api.revokeAccess();
+				} catch ( error ) {
+					expect( ( error as Error ).message ).toEqual( noAuthApiErrorMessage );
+				}
+			} );
+		} );
+
+		describe( 'when the API was created with an OAuth2 auth API', () => {
+			const itDoesNotRevokeAnyAccessToken = ( accessTokenGetterResult: null | undefined ) => {
+				it( 'revokes the access token from the getter through the auth API', () => {
+					const api = createApi( { accessTokenGetter: () => accessTokenGetterResult } );
+
+					api.revokeAccess();
+
+					expect( authApi.revokeAccessToken ).not.toHaveBeenCalled();
+				} );
+			};
+
+			describe( 'and the access token getter returns null', () => {
+				itDoesNotRevokeAnyAccessToken( null );
+			} );
+
+			describe( 'and the access token getter returns undefined', () => {
+				itDoesNotRevokeAnyAccessToken( undefined );
+			} );
+
+			describe( 'and the access token getter returns an access token', () => {
+				it( 'revokes the access token from the getter through the auth API', () => {
+					const api = createApi();
+
+					api.revokeAccess();
+
+					expect( authApi.revokeAccessToken ).toHaveBeenCalledWith( accessToken );
+				} );
+			} );
+
+			describe( 'when the auth API successfully revokes the access token', () => {
+				it( 'calls the onAccessTokenUpdated callback with null as argument', async () => {
+					const api = createApi();
+
+					await api.revokeAccess();
+
+					expect( onAccessTokenUpdated ).toHaveBeenCalledWith( null );
+				} );
+			} );
+
+			describe( 'when the auth API throws an error', () => {
+				it( 'throws the same error', async () => {
+					expect.assertions( 1 );
+					const error = new InvalidTokenRequestError( {
+						code: 'unauthorized_client',
+						httpStatus: 400,
+						description: 'Unauthorized client'
+					} );
+					authApi.revokeAccessToken.mockRejectedValueOnce( error );
+					const api = createApi();
+
+					try {
+						await api.revokeAccess();
+					} catch ( thrownError ) {
+						expect( thrownError ).toEqual( error );
+					}
+				} );
+			} );
+		} );
+	} );
+
 	describe( '@request', () => {
-		const onAccessTokenUpdated = jest.fn();
 		const path = '/some/resource';
 		const params = { include: [ 'nested1', 'nested2' ], metaparam: 25 };
 		const data = { name: 'A resource', description: 'Test description', code: 42 };
@@ -115,14 +203,6 @@ describe( 'Api', () => {
 				response: { data: failedResponseData, status: status || failedResponseStatus }
 			} );
 		};
-
-		const createApi = ( apiParams: object ) => new Api( {
-			baseUrl,
-			authApi,
-			accessTokenGetter: () => accessToken,
-			onAccessTokenUpdated,
-			...apiParams
-		} );
 
 		const createApiAndMakeRequest = ( apiParams = {} ) => {
 			const api = createApi( apiParams );
@@ -151,8 +231,6 @@ describe( 'Api', () => {
 				}
 			} );
 		};
-
-		afterEach( () => jest.clearAllMocks() );
 
 		it( 'makes an HTTP request with the provided config', () => {
 			mockRequestSuccessfulResponse();
