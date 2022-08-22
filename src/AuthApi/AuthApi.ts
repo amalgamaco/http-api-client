@@ -18,13 +18,15 @@ import {
 } from '../types';
 
 export default class AuthApi {
-	private tokenEndpoint: string;
+	private createTokenEndpoint: string;
+	private revokeTokenEndpoint: string;
 	private client: AxiosInstance;
 
 	constructor( {
-		baseUrl, tokenEndpoint, clientId, clientSecret
+		baseUrl, createTokenEndpoint, revokeTokenEndpoint, clientId, clientSecret
 	}: AuthApiParams ) {
-		this.tokenEndpoint = tokenEndpoint;
+		this.createTokenEndpoint = createTokenEndpoint;
+		this.revokeTokenEndpoint = revokeTokenEndpoint;
 
 		this.client = axios.create( {
 			baseURL: baseUrl,
@@ -50,13 +52,21 @@ export default class AuthApi {
 		);
 	}
 
+	revokeAccessToken( accessToken: AccessToken ): Promise<void> {
+		return this.makeAccessTokenRevocationRequest( accessToken )
+			.then( () => undefined )
+			.catch( ( error ) => {
+				throw this.mapRequestError( error, false );
+			} );
+	}
+
 	private makeAccessTokenRequest(
 		grantType: 'password' | 'refresh_token',
 		credentials: Credentials
 	): Promise<AccessToken> {
 		const body = { grant_type: grantType, ...credentials };
 
-		return this.client.post( this.tokenEndpoint, body )
+		return this.client.post( this.createTokenEndpoint, body )
 			.then( response => this.createTokenFromResponse( response.data ) )
 			.catch( ( error ) => {
 				throw this.mapRequestError( error, grantType === 'refresh_token' );
@@ -111,5 +121,13 @@ export default class AuthApi {
 		}
 
 		return unexpectedFailedResponseMessage( status, data );
+	}
+
+	private makeAccessTokenRevocationRequest( accessToken: AccessToken ): Promise<void> {
+		return this.client.post(
+			this.revokeTokenEndpoint,
+			undefined,
+			{ params: { token: accessToken.token } }
+		);
 	}
 }
