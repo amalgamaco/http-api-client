@@ -1,5 +1,6 @@
 import axios from 'axios';
 import Api from '../../src/Api/Api';
+import { HTTP_BAD_REQUEST, HTTP_NOT_FOUND, HTTP_UNAUTHORIZED } from '../../src/constants';
 import { FailedResponseError, InvalidCredentialsError, InvalidTokenRequestError } from '../../src/errors';
 import NetworkError from '../../src/errors/NetworkError';
 
@@ -106,7 +107,7 @@ describe( 'Api', () => {
 					expect.assertions( 1 );
 					const error = new InvalidCredentialsError( {
 						code: 'invalid_grant',
-						httpStatus: 400,
+						httpStatus: HTTP_BAD_REQUEST,
 						description: 'Invalid credentials'
 					} );
 					authApi.requestAccessToken.mockRejectedValueOnce( error );
@@ -180,7 +181,7 @@ describe( 'Api', () => {
 					expect.assertions( 1 );
 					const error = new InvalidTokenRequestError( {
 						code: 'unauthorized_client',
-						httpStatus: 400,
+						httpStatus: HTTP_BAD_REQUEST,
 						description: 'Unauthorized client'
 					} );
 					authApi.revokeAccessToken.mockRejectedValueOnce( error );
@@ -204,7 +205,7 @@ describe( 'Api', () => {
 		const successfulResponseData = { message: 'Request successful' };
 		const successfulAxiosResponse = { data: successfulResponseData, status: 200 };
 		const failedResponseData = { message: 'Resource not found' };
-		const failedResponseStatus = 404;
+		const failedResponseStatus = HTTP_NOT_FOUND;
 
 		const mockRequestSuccessfulResponse = () => {
 			axiosClientMock.request.mockResolvedValueOnce( successfulAxiosResponse );
@@ -286,7 +287,7 @@ describe( 'Api', () => {
 		describe( 'when the request returns a failed response with status 401', () => {
 			describe( 'and the current access token has an associated refresh token', () => {
 				it( 'refreshes the access token with the auth API', async () => {
-					mockRequestFailedResponse( 401 );
+					mockRequestFailedResponse( HTTP_UNAUTHORIZED );
 					mockRequestSuccessfulResponse();
 
 					await createApiAndMakeRequest();
@@ -296,7 +297,7 @@ describe( 'Api', () => {
 
 				describe( 'when the refresh request is successful', () => {
 					it( 'calls the onAccessTokenUpdated callback with the new token', async () => {
-						mockRequestFailedResponse( 401 );
+						mockRequestFailedResponse( HTTP_UNAUTHORIZED );
 						mockRequestSuccessfulResponse();
 
 						await createApiAndMakeRequest();
@@ -305,7 +306,7 @@ describe( 'Api', () => {
 					} );
 
 					it( 'performs the request again', async () => {
-						mockRequestFailedResponse( 401 );
+						mockRequestFailedResponse( HTTP_UNAUTHORIZED );
 						mockRequestSuccessfulResponse();
 
 						await createApiAndMakeRequest();
@@ -319,7 +320,7 @@ describe( 'Api', () => {
 
 					it( 'throws the same error', async () => {
 						expect.assertions( 1 );
-						mockRequestFailedResponse( 401 );
+						mockRequestFailedResponse( HTTP_UNAUTHORIZED );
 						authApi.refreshAccessToken.mockRejectedValue( error );
 
 						try {
@@ -336,7 +337,7 @@ describe( 'Api', () => {
 					apiParams: {
 						accessTokenGetter: () => ( { ...accessToken, refreshToken: null } )
 					},
-					errorStatus: 401
+					errorStatus: HTTP_UNAUTHORIZED
 				} );
 			} );
 		} );

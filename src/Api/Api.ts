@@ -13,6 +13,7 @@ import {
 	IAuthApi
 } from '../types';
 import { FailedResponseError, missingAuthApiError, networkError } from '../errors';
+import { HTTP_UNAUTHORIZED } from '../constants';
 
 export default class Api {
 	private client: AxiosInstance;
@@ -114,7 +115,7 @@ export default class Api {
 	): Promise<ApiResponse> {
 		const { status, data } = response;
 
-		if ( status === 401 && this.canRefreshToken() && !requestConfig.noRefreshToken ) {
+		if ( status === HTTP_UNAUTHORIZED && this.canRefreshToken() && !requestConfig.noRefreshToken ) {
 			return this.refreshTokenAndRetryRequest( requestConfig );
 		}
 
