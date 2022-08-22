@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { InvalidCredentialsError, InvalidTokenRequestError } from '../../src/errors';
 import AuthApi from '../../src/AuthApi/AuthApi';
 import { AccessToken } from '../../src/types';
@@ -23,7 +24,7 @@ jest.mock( 'axios', () => ( {
 	...jest.requireActual( 'axios' ),
 	__esModule: true,
 	default: {
-		create: () => axiosClient,
+		create: jest.fn( () => axiosClient ),
 		isAxiosError: () => true
 	}
 } ) );
@@ -94,7 +95,7 @@ describe( 'AuthApi', () => {
 				} );
 
 				describe( 'and the error_code is invalid_grant', () => {
-					it( `throws an ${errorClassForInvalidGrant} with the returned code and description`, async () => {
+					it( `throws an ${errorClassForInvalidGrant.name} with the returned code and description`, async () => {
 						mockErrorResponse( errorStatus, { error: 'invalid_grant' } );
 
 						await expectApiToThrowInvalidTokenRequestError( {
@@ -192,6 +193,20 @@ describe( 'AuthApi', () => {
 	};
 
 	afterEach( () => jest.clearAllMocks() );
+
+	describe( 'constructor', () => {
+		it( 'creates an Axios client with the given base URL and client credenetials', () => {
+			createAuthApi();
+
+			expect( axios.create ).toHaveBeenCalledWith( {
+				baseURL: baseUrl,
+				auth: {
+					username: clientId,
+					password: clientSecret
+				}
+			} );
+		} );
+	} );
 
 	describe( '@requestAccessToken', () => {
 		const credentials = { username: 'a_user', password: 'a_password' };
