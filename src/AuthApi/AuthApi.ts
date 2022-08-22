@@ -14,18 +14,24 @@ import {
 	AccessTokenParams,
 	AccessTokenRefreshParams,
 	AccessTokenRequestResponse,
-	Credentials,
 	AuthApiParams
 } from '../types';
 
 export default class AuthApi {
+	private defaultGrantType: string;
 	private createTokenEndpoint: string;
 	private revokeTokenEndpoint: string;
 	private client: AxiosInstance;
 
 	constructor( {
-		baseUrl, createTokenEndpoint, revokeTokenEndpoint, clientId, clientSecret
+		baseUrl,
+		defaultGrantType = 'password',
+		createTokenEndpoint,
+		revokeTokenEndpoint,
+		clientId,
+		clientSecret
 	}: AuthApiParams ) {
+		this.defaultGrantType = defaultGrantType;
 		this.createTokenEndpoint = createTokenEndpoint;
 		this.revokeTokenEndpoint = revokeTokenEndpoint;
 
@@ -38,19 +44,30 @@ export default class AuthApi {
 		} );
 	}
 
-	requestAccessToken( { credentials }: AccessTokenParams ): Promise<AccessToken> {
-		return this.makeAccessTokenRequest( 'password', credentials );
+	requestAccessToken( {
+		grantType = this.defaultGrantType,
+		credentials
+	}: AccessTokenParams ): Promise<AccessToken> {
+		const body = { grant_type: grantType, ...credentials };
+
+		return this.client.post( this.createTokenEndpoint, body )
+			.then( response => this.createTokenFromResponse( response.data ) )
+			.catch( ( error ) => {
+				throw this.mapRequestError( error, grantType === 'refresh_token' );
+			} );
 	}
 
 	refreshAccessToken( { accessToken }: AccessTokenRefreshParams ): Promise<AccessToken> {
-		if ( !accessToken.refreshToken ) {
+		const { refreshToken } = accessToken;
+
+		if ( !refreshToken ) {
 			return Promise.reject( noRefreshTokenError() );
 		}
 
-		return this.makeAccessTokenRequest(
-			'refresh_token',
-			{ refresh_token: accessToken.refreshToken }
-		);
+		return this.requestAccessToken( {
+			grantType: 'refresh_token',
+			credentials: { refresh_token: refreshToken }
+		} );
 	}
 
 	revokeAccessToken( accessToken: AccessToken ): Promise<void> {
@@ -58,19 +75,6 @@ export default class AuthApi {
 			.then( () => undefined )
 			.catch( ( error ) => {
 				throw this.mapRequestError( error, false );
-			} );
-	}
-
-	private makeAccessTokenRequest(
-		grantType: 'password' | 'refresh_token',
-		credentials: Credentials
-	): Promise<AccessToken> {
-		const body = { grant_type: grantType, ...credentials };
-
-		return this.client.post( this.createTokenEndpoint, body )
-			.then( response => this.createTokenFromResponse( response.data ) )
-			.catch( ( error ) => {
-				throw this.mapRequestError( error, grantType === 'refresh_token' );
 			} );
 	}
 

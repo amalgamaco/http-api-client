@@ -1,19 +1,16 @@
 import axios from 'axios';
 import { InvalidCredentialsError, InvalidTokenRequestError } from '../../src/errors';
 import AuthApi from '../../src/AuthApi/AuthApi';
-import { AccessToken } from '../../src/types';
+import { AccessToken, AuthApiParams } from '../../src/types';
 
 interface ItHandlesErrorsCorrectlyParams {
 	forAction: () => Promise<unknown>,
 	errorClassForInvalidGrant?: typeof InvalidTokenRequestError
 }
 
-interface ItRequestsAnAccessTokenParams {
-	action: ( authApi: AuthApi ) => Promise<AccessToken>,
-	withGrantType: string,
-	withCredentials: Record<string, string>,
-	errorClassForInvalidGrant: typeof InvalidTokenRequestError,
-	actionDescription: string
+interface ItHandlesAccessTokenResponseCorrectlyParams {
+	action: () => Promise<AccessToken>,
+	errorClassForInvalidGrant: typeof InvalidTokenRequestError
 }
 
 const axiosClient = {
@@ -43,8 +40,8 @@ describe( 'AuthApi', () => {
 		refreshToken: 'a_refresh_token'
 	} );
 
-	const createAuthApi = () => new AuthApi( {
-		baseUrl, createTokenEndpoint, revokeTokenEndpoint, clientId, clientSecret
+	const createAuthApi = ( params?: Partial<AuthApiParams> ) => new AuthApi( {
+		baseUrl, createTokenEndpoint, revokeTokenEndpoint, clientId, clientSecret, ...params
 	} );
 
 	const itHandlesErrorsCorrectly = ( {
@@ -121,9 +118,9 @@ describe( 'AuthApi', () => {
 		} );
 	};
 
-	const itRequestsAnAccessToken = ( {
-		action, withGrantType, withCredentials, errorClassForInvalidGrant, actionDescription
-	}: ItRequestsAnAccessTokenParams ) => {
+	const itHandlesAccessTokenResponseCorrectly = ( {
+		action, errorClassForInvalidGrant
+	}: ItHandlesAccessTokenResponseCorrectlyParams ) => {
 		const response = {
 			access_token: 'xyz',
 			token_type: 'bearer',
@@ -138,27 +135,11 @@ describe( 'AuthApi', () => {
 			} );
 		};
 
-		const createApiAndRequestToken = () => {
-			const authApi = createAuthApi();
-
-			return action( authApi );
-		};
-
 		beforeEach( () => mockAccessTokenResponse() );
-		afterEach( () => jest.clearAllMocks() );
-
-		it( actionDescription, () => {
-			createApiAndRequestToken();
-
-			expect( axiosClient.post ).toHaveBeenCalledWith(
-				createTokenEndpoint,
-				{ grant_type: withGrantType, ...withCredentials }
-			);
-		} );
 
 		describe( 'when the request returns a successful access token response', () => {
 			it( 'returns an AccessToken object built from the response', async () => {
-				const accessToken = await createApiAndRequestToken();
+				const accessToken = await action();
 
 				expect( accessToken ).toEqual( {
 					token: response.access_token,
@@ -172,7 +153,7 @@ describe( 'AuthApi', () => {
 				it( 'returns an AccessToken object with null expiresIn', async () => {
 					mockAccessTokenResponse( { expires_in: undefined } );
 
-					const accessToken = await createApiAndRequestToken();
+					const accessToken = await action();
 
 					expect( accessToken.expiresIn ).toBeNull();
 				} );
@@ -182,14 +163,14 @@ describe( 'AuthApi', () => {
 				it( 'returns an AccessToken object with null refreshToken', async () => {
 					mockAccessTokenResponse( { refresh_token: undefined } );
 
-					const accessToken = await createApiAndRequestToken();
+					const accessToken = await action();
 
 					expect( accessToken.refreshToken ).toBeNull();
 				} );
 			} );
 		} );
 
-		itHandlesErrorsCorrectly( { forAction: createApiAndRequestToken, errorClassForInvalidGrant } );
+		itHandlesErrorsCorrectly( { forAction: action, errorClassForInvalidGrant } );
 	};
 
 	afterEach( () => jest.clearAllMocks() );
@@ -209,30 +190,53 @@ describe( 'AuthApi', () => {
 	} );
 
 	describe( '@requestAccessToken', () => {
-		const credentials = { username: 'a_user', password: 'a_password' };
+		const credentials = { some_external_token: 'a_token' };
 
-		itRequestsAnAccessToken( {
-			action: authApi => authApi.requestAccessToken( { credentials } ),
-			withGrantType: 'password',
-			withCredentials: credentials,
-			errorClassForInvalidGrant: InvalidCredentialsError,
-			actionDescription: (
-				'requests the create token endpoint with the provided credentials following the OAuth2 spec'
-			)
+		const expectRequestToHaveBeenMadeCorrectly = ( withGrantType: string ) => {
+			expect( axiosClient.post ).toHaveBeenCalledWith(
+				createTokenEndpoint,
+				{ grant_type: withGrantType, ...credentials }
+			);
+		};
+
+		it( 'requests the create token endpoint with the provided grant type and credentials', () => {
+			createAuthApi().requestAccessToken( { grantType: 'assertion', credentials } );
+
+			expectRequestToHaveBeenMadeCorrectly( 'assertion' );
+		} );
+
+		describe( 'when no grant type is specified', () => {
+			it( 'makes the request with the grant type passed to the auth api constructor', () => {
+				const api = createAuthApi( { defaultGrantType: 'a_default_grant_type' } );
+
+				api.requestAccessToken( { credentials } );
+
+				expectRequestToHaveBeenMadeCorrectly( 'a_default_grant_type' );
+			} );
+		} );
+
+		itHandlesAccessTokenResponseCorrectly( {
+			action: () => createAuthApi().requestAccessToken( { credentials } ),
+			errorClassForInvalidGrant: InvalidCredentialsError
 		} );
 	} );
 
 	describe( '@refreshAccessToken', () => {
 		const accessToken = buildAccessToken();
+		const refreshAccessToken = () => createAuthApi().refreshAccessToken( { accessToken } );
 
-		itRequestsAnAccessToken( {
-			action: authApi => authApi.refreshAccessToken( { accessToken } ),
-			withGrantType: 'refresh_token',
-			withCredentials: { refresh_token: accessToken.refreshToken },
-			errorClassForInvalidGrant: InvalidTokenRequestError,
-			actionDescription: (
-				'requests the create token endpoint with the refresh token associated to the given access token'
-			)
+		it( 'requests the create token endpoint with the refresh token associated to the given access token', () => {
+			refreshAccessToken();
+
+			expect( axiosClient.post ).toHaveBeenCalledWith(
+				createTokenEndpoint,
+				{ grant_type: 'refresh_token', refresh_token: accessToken.refreshToken }
+			);
+		} );
+
+		itHandlesAccessTokenResponseCorrectly( {
+			action: refreshAccessToken,
+			errorClassForInvalidGrant: InvalidTokenRequestError
 		} );
 	} );
 
