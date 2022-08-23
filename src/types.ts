@@ -68,11 +68,16 @@ export type JSONValue =
     | { [ key: string ]: JSONValue }
     | Array<JSONValue>;
 
+export interface RequestData {
+	[ key: string ]: unknown;
+}
+
 export interface RequestConfig {
 	method: HTTPMethod,
 	path: string,
 	params?: QueryParams,
-	data?: JSONValue,
+	data?: RequestData,
+	sendAsFormData?: boolean,
 	noRefreshToken?: boolean
 }
 
