@@ -3,6 +3,7 @@ import NetworkError from './NetworkError';
 export { default as FailedResponseError } from './FailedResponseError';
 export { default as InvalidCredentialsError } from './InvalidCredentialsError';
 export { default as InvalidTokenRequestError } from './InvalidTokenRequestError';
+export { default as NetworkError } from './NetworkError';
 
 export const networkError = () => new NetworkError();
 
