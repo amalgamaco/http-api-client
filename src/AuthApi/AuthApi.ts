@@ -16,6 +16,7 @@ import {
 	AccessTokenRequestResponse,
 	AuthApiParams
 } from '../types';
+import { basicAuthHeader } from './utils';
 
 export default class AuthApi {
 	private defaultGrantType: string;
@@ -37,10 +38,7 @@ export default class AuthApi {
 
 		this.client = axios.create( {
 			baseURL: baseUrl,
-			auth: {
-				username: clientId,
-				password: clientSecret
-			}
+			headers: basicAuthHeader( clientId, clientSecret )
 		} );
 	}
 
