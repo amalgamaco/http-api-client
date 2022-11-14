@@ -2,6 +2,7 @@ import axios from 'axios';
 import { InvalidCredentialsError, InvalidTokenRequestError } from '../../src/errors';
 import AuthApi from '../../src/AuthApi/AuthApi';
 import { AccessToken, AuthApiParams } from '../../src/types';
+import { btoa } from 'js-base64';
 
 interface ItHandlesErrorsCorrectlyParams {
 	forAction: () => Promise<unknown>,
@@ -179,12 +180,10 @@ describe( 'AuthApi', () => {
 		it( 'creates an Axios client with the given base URL and client credenetials', () => {
 			createAuthApi();
 
+			const expectedBasicAuthCredentials = btoa( `${clientId}:${clientSecret}` );
 			expect( axios.create ).toHaveBeenCalledWith( {
 				baseURL: baseUrl,
-				auth: {
-					username: clientId,
-					password: clientSecret
-				}
+				headers: { Authorization: `Basic ${expectedBasicAuthCredentials}` }
 			} );
 		} );
 	} );
