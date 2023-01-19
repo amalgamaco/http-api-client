@@ -27,6 +27,7 @@ stages:
   - build
   - lint
   - test
+  - sonar
 
 yarn:
   stage: build
@@ -69,3 +70,26 @@ run_unit_tests:
       junit:
         - reports/junit.xml
       cobertura: reports/coverage/cobertura-coverage.xml
+
+upload_to_sonar:
+  stage: sonar
+  image:
+    name: sonarsource/sonar-scanner-cli:latest
+    entrypoint: [""]
+  variables:
+    SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"
+    GIT_DEPTH: "0"
+  cache:
+    key: "${CI_JOB_NAME}"
+    paths:
+      - .sonar/cache
+  script:
+    - sed -i.bk 's/SF:.*\http-api-client\/\(.*\)/SF:\1/' reports/coverage/lcov.info
+    - sonar-scanner
+  allow_failure: true
+  tags:
+    - docker
+  only:
+    - main
+  dependencies:
+    - run_unit_tests
