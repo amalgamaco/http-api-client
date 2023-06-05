@@ -1,5 +1,5 @@
 {
-	"name": "@amalgama/http-api-client",
+	"name": "@amalgamaco/http-api-client",
 	"version": "1.0.3",
 	"description": "An abstraction for establishing connections with HTTP APIs, supporting OAuth2 authentication with refresh tokens and other minor features.",
 	"main": "dist/index.js",
@@ -15,7 +15,7 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "git@git.amalgama.co:amalgama/packages/npm/http-api-client.git"
+		"url": "git@github.com:amalgamaco/http-api-client.git"
 	},
 	"keywords": [
 		"api",
@@ -27,7 +27,8 @@
 	"author": "Damián Huaier",
 	"license": "ISC",
 	"publishConfig": {
-		"@amalgama:registry": "https://git.amalgama.co/api/v4/projects/982/packages/npm/"
+		"registry": "https://registry.npmjs.org",
+		"access": "public"
 	},
 	"dependencies": {
 		"@types/qs": "^6.9.7",
@@ -80,14 +81,13 @@
 			"requireCleanWorkingDir": false,
 			"requireUpstream": true,
 			"commitMessage": "Release v${version}",
-			"changelog": "npx auto-changelog --stdout --commit-limit false --unreleased --issue-url https://git.amalgama.co/amalgama/packages/npm/http-api-client/-/issues/{id} --merge-url https://git.amalgama.co/amalgama/packages/npm/http-api-client/-/merge_requests/{id} --commit-url https://git.amalgama.co/amalgama/packages/npm/http-api-client/-/commit/{id}"
+			"changelog": "npx auto-changelog --stdout --commit-limit false --unreleased --issue-url https://github.com/amalgamaco/http-api-client/issues/{id} --merge-url https://github.com/amalgamaco/http-api-client/pull/{id} --commit-url https://github.com/amalgamaco/http-api-client/commit/{id}"
 		},
 		"hooks": {
 			"after:bump": "npx auto-changelog -p"
 		},
-		"gitlab": {
+		"github": {
 			"release": true,
-			"publish": true,
 			"releaseName": "Release v${version}"
 		},
 		"npm": {
