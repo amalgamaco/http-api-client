@@ -20,7 +20,11 @@ IMPORTANT: it is strongly recommended to **read the [Introduction section of the
 To install the package, run:
 
 ```sh
-yarn install @amalgama/http-api-client
+yarn install @amalgamaco/http-api-client
+```
+or
+```sh
+npm install @amalgamaco/http-api-client
 ```
 
 ## Basic usage
@@ -32,7 +36,7 @@ Suppose you are making a frontend application, and you need to connect to the co
 If the API does not require authentication, or you will only be making requests to endpoints that do not require authentication, then you can create and use your `Api` instance like this:
 
 ```ts
-import { Api } from '@amalgama/http-api-client';
+import { Api } from '@amalgamaco/http-api-client';
 
 const myApi = new Api( {
 	baseUrl: 'https://my.api.com'
