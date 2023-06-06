@@ -20,7 +20,7 @@ IMPORTANT: it is strongly recommended to **read the [Introduction section of the
 To install the package, run:
 
 ```sh
-yarn install @amalgamaco/http-api-client
+yarn add @amalgamaco/http-api-client
 ```
 or
 ```sh
