@@ -1,6 +1,6 @@
 {
 	"name": "@amalgamaco/http-api-client",
-	"version": "1.0.4",
+	"version": "1.0.5",
 	"description": "An abstraction for establishing connections with HTTP APIs, supporting OAuth2 authentication with refresh tokens and other minor features.",
 	"main": "dist/index.js",
 	"types": "dist/index.d.ts",
