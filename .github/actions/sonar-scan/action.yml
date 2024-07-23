@@ -1,0 +1,46 @@
+name: 'Sonar scan'
+description: 'Triggers a Sonarqube scan'
+inputs:
+  sonar-token:
+    description: 'Sonarqube token'
+    required: true
+  sonar-host-url:
+    description: 'Sonarqube host url'
+    required: false
+    default: 'https://sonarqube.amalgama.co'
+  sonar-scanner-version:
+    description: 'The version of the SonarScanner to use'
+    required: false
+    default: '5.0.1.3006'
+  working-directory:
+    description: 'The working directory where to run the action'
+    required: false
+    default: '.'
+runs:
+  using: "composite"
+  steps:
+    - name: Download and install the SonarScanner
+      env:
+        SONAR_SCANNER_VERSION: ${{ inputs.sonar-scanner-version }}
+      shell: bash
+      run: |
+        mkdir -p $HOME/.sonar/
+        curl -sSLo $HOME/.sonar/sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${{ env.SONAR_SCANNER_VERSION }}-linux.zip
+        unzip -qq -o $HOME/.sonar/sonar-scanner.zip -d $HOME/.sonar/
+        echo "$HOME/.sonar/sonar-scanner-${{ env.SONAR_SCANNER_VERSION }}-linux/bin" >> $GITHUB_PATH
+      working-directory: ${{ inputs.working-directory }}
+    - name: SonarQube analysis
+      env:
+        SONAR_TOKEN: ${{ inputs.sonar-token }}
+        SONAR_HOST_URL: ${{ inputs.sonar-host-url }}
+      shell: bash
+      run: sonar-scanner
+      working-directory: ${{ inputs.working-directory }}
+    - name: SonarQube Quality Gate check
+      env:
+        SONAR_TOKEN: ${{ inputs.sonar-token }}
+        SONAR_HOST_URL: ${{ inputs.sonar-host-url }}
+      id: sonarqube-quality-gate-check
+      uses: sonarsource/sonarqube-quality-gate-action@master
+      with:
+        scanMetadataReportFile: ${{ inputs.working-directory }}/.scannerwork/report-task.txt
