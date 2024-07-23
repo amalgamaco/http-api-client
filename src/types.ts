@@ -1,3 +1,5 @@
+import { AxiosRequestConfig } from 'axios';
+
 export type GrantType = string;
 
 export interface AuthApiParams {
@@ -43,11 +45,17 @@ export interface IAuthApi {
 export type AccessTokenGetter = () => AccessToken | null | undefined;
 export type AccessTokenUpdateCallback = ( accessToken: AccessToken | null ) => void;
 
+export type ApiDefaultConfig = Exclude<
+	AxiosRequestConfig,
+	'url' | 'method' | 'baseUrl' | 'params' | 'data'
+>;
+
 export interface ApiParams {
 	baseUrl: string,
 	authApi?: IAuthApi,
 	accessTokenGetter?: AccessTokenGetter,
-	onAccessTokenUpdated?: AccessTokenUpdateCallback
+	onAccessTokenUpdated?: AccessTokenUpdateCallback,
+	config?: ApiDefaultConfig
 }
 
 export type HTTPMethod = 'get' | 'post' | 'put' | 'patch' | 'delete';
@@ -78,7 +86,8 @@ export interface RequestConfig {
 	params?: QueryParams,
 	data?: RequestData,
 	sendAsFormData?: boolean,
-	noRefreshToken?: boolean
+	noRefreshToken?: boolean,
+	timeout?: number
 }
 
 export type ApiResponse = JSONValue;

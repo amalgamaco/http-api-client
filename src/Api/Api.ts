@@ -25,7 +25,7 @@ export default class Api {
 	private onAccessTokenUpdated: AccessTokenUpdateCallback;
 
 	constructor( {
-		baseUrl, authApi, accessTokenGetter, onAccessTokenUpdated
+		baseUrl, authApi, accessTokenGetter, onAccessTokenUpdated, config = {}
 	}: ApiParams ) {
 		this.authApi = authApi;
 		this.accessTokenGetter = accessTokenGetter || ( () => undefined );
@@ -36,7 +36,8 @@ export default class Api {
 			paramsSerializer: ( params: QueryParams ) => (
 				// Serialization compatible with Rails apps
 				stringify( params, { arrayFormat: 'brackets' } )
-			)
+			),
+			...config
 		} );
 	}
 
@@ -95,7 +96,8 @@ export default class Api {
 			params: config.params,
 			headers: this.requestHeadersFor( config ),
 			data: config.data,
-			transformRequest: serializeRequestDataForContentType
+			transformRequest: serializeRequestDataForContentType,
+			timeout: config.timeout
 		} );
 	}
 

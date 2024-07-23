@@ -1,6 +1,6 @@
 # HTTP API Client
 
-[[_TOC_]]
+[![npm version](https://badge.fury.io/js/@amalgamaco%2Fhttp-api-client.svg)](https://www.npmjs.com/package/@amalgamaco/http-api-client)
 
 ## Introduction
 

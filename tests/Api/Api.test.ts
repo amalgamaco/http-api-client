@@ -3,6 +3,7 @@ import Api from '../../src/Api/Api';
 import { HTTP_BAD_REQUEST, HTTP_NOT_FOUND, HTTP_UNAUTHORIZED } from '../../src/constants';
 import { FailedResponseError, InvalidCredentialsError, InvalidTokenRequestError } from '../../src/errors';
 import NetworkError from '../../src/errors/NetworkError';
+import { ApiParams } from '../../src/types';
 
 const axiosClientMock = {
 	request: jest.fn()
@@ -46,7 +47,7 @@ describe( 'Api', () => {
 
 	const onAccessTokenUpdated = jest.fn();
 
-	const createApi = ( apiParams: object = {} ) => new Api( {
+	const createApi = ( apiParams: Partial<ApiParams> = {} ) => new Api( {
 		baseUrl,
 		authApi,
 		accessTokenGetter: () => accessToken,
@@ -63,6 +64,16 @@ describe( 'Api', () => {
 			expect( axios.create ).toHaveBeenCalledWith( {
 				baseURL: baseUrl,
 				paramsSerializer: expect.any( Function )
+			} );
+		} );
+
+		describe( 'with additional config', () => {
+			it( 'passes it to the Axios client', () => {
+				const config = { headers: { 'X-Test-Header': 'Test value' }, timeout: 5000 };
+
+				createApi( { config } );
+
+				expect( axios.create ).toHaveBeenCalledWith( expect.objectContaining( config ) );
 			} );
 		} );
 	} );
@@ -256,6 +267,21 @@ describe( 'Api', () => {
 				headers: { 'Content-Type': 'application/json' },
 				data,
 				transformRequest: expect.any( Function )
+			} );
+		} );
+
+		describe( 'with timeout', () => {
+			mockRequestSuccessfulResponse();
+			createApiAndMakeRequest( { accessTokenGetter: undefined }, { timeout: 5000 } );
+
+			expect( axiosClientMock.request ).toHaveBeenCalledWith( {
+				method: 'post',
+				url: path,
+				params,
+				headers: { 'Content-Type': 'application/json' },
+				data,
+				transformRequest: expect.any( Function ),
+				timeout: 5000
 			} );
 		} );
 
